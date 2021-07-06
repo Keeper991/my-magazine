@@ -3,26 +3,56 @@ import { FavoriteBorder } from "@material-ui/icons";
 import { history } from "../redux/configStore";
 
 const Post = (props) => {
+  const {
+    id,
+    author,
+    imgUrl,
+    content,
+    layout,
+    likeCnt,
+    commentCnt,
+    createdAt,
+  } = props;
   return (
-    <Grid onClick={() => history.push("/detail")}>
+    <Grid
+      onClick={() => {
+        history.push(`/detail/${id}`);
+        window.scrollTo(0, 0);
+      }}
+    >
       <Grid flex>
         <Grid flex term>
-          <Image avatar />
-          <Text>breadman</Text>
+          <Image avatar url={author.imgUrl} />
+          <Text>{author.name}</Text>
         </Grid>
         <Grid flex term>
-          <Text>17시간 전</Text>
+          <Text>{createdAt}</Text>
         </Grid>
       </Grid>
-      <Text>빵이다!!</Text>
-      <Image url="https://i.imgur.com/vlFwCsZ.jpg" />
+      {layout === "Bottom" ? (
+        <Grid>
+          <Text>{content}</Text>
+          <Image url={imgUrl} />
+        </Grid>
+      ) : layout === "Right" ? (
+        <Grid flex>
+          <Text half>{content}</Text>
+          <Image half url={imgUrl} />
+        </Grid>
+      ) : (
+        <Grid flex flexDirection="row-reverse">
+          <Text half>{content}</Text>
+          <Image half url={imgUrl} />
+        </Grid>
+      )}
+
       <Grid flex>
-        <Text>좋아요 0개</Text>
+        <Text>좋아요 {likeCnt}개</Text>
         <Button bgColor="transparent">
           <FavoriteBorder />
         </Button>
       </Grid>
-      <Text margin="0 0">댓글 0개</Text>
+      <Text margin="0 0">댓글 {commentCnt}개</Text>
     </Grid>
   );
 };

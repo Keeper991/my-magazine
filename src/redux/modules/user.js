@@ -79,7 +79,12 @@ const signInCheckFB =
   };
 
 const initialState = {
-  user: null,
+  user: {
+    id: "",
+    name: "",
+    profile: "",
+    uid: "",
+  },
   isSignIn: false,
 };
 

@@ -1,7 +1,8 @@
 import styled from "styled-components";
 
 const Input = (props) => {
-  const { id, label, multiLine, value, placeholder, onChange, padding } = props;
+  const { id, label, multiLine, value, placeholder, onChange, padding, type } =
+    props;
   const styles = { padding };
   return (
     <>
@@ -17,6 +18,7 @@ const Input = (props) => {
       ) : (
         <ElInput
           {...styles}
+          type={type}
           id={id}
           value={value}
           placeholder={placeholder}
@@ -34,10 +36,13 @@ Input.defaultProps = {
   id: "",
   value: "",
   padding: "15px",
+  type: "text",
   onChange: () => {},
 };
 
-const ElInput = styled.input`
+const ElInput = styled.input.attrs((props) => ({
+  type: props.type,
+}))`
   display: block;
   padding: ${({ padding }) => padding};
   width: 100%;
@@ -51,6 +56,8 @@ const ElTextArea = styled.textarea`
   display: block;
   padding: ${({ padding }) => padding};
   width: 100%;
+  height: 30em;
+  resize: none;
   &:active,
   &:focus {
     outline: none;

@@ -5,8 +5,16 @@ import { connectRouter } from "connected-react-router";
 
 import user from "./modules/user";
 import post from "./modules/post";
+import image from "./modules/image";
 
 const history = createBrowserHistory();
+const rootReducer = combineReducers({
+  user,
+  post,
+  image,
+  router: connectRouter(history),
+});
+
 const middlewares = [thunk.withExtraArgument({ history })];
 
 const env = process.env.NODE_ENV;
@@ -23,12 +31,6 @@ const composeEnhancers =
     : compose;
 
 const enhancer = composeEnhancers(applyMiddleware(...middlewares));
-
-const rootReducer = combineReducers({
-  user,
-  post,
-  router: connectRouter(history),
-});
 
 const store = createStore(rootReducer, enhancer);
 
