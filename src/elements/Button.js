@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import color from "../shared/color";
+import color from "../shared/Color";
 
 const Button = (props) => {
   const { children, bgColor, color, full, circle, onClick, margin } = props;

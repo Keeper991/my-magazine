@@ -1,5 +1,6 @@
 import { Grid, Image, Text, Button, Input } from "../elements";
 import { FavoriteBorder, Create } from "@material-ui/icons";
+import Permit from "../shared/Permit";
 
 const Detail = () => {
   return (
@@ -23,13 +24,15 @@ const Detail = () => {
           </Button>
         </Grid>
         <Text margin="0 0">댓글 0개</Text>
-        <Grid flex term>
-          <Image avatar />
-          <Input placeholder="댓글 달기" />
-          <Button>
-            <Create />
-          </Button>
-        </Grid>
+        <Permit>
+          <Grid flex term>
+            <Image avatar />
+            <Input placeholder="댓글 달기" />
+            <Button>
+              <Create />
+            </Button>
+          </Grid>
+        </Permit>
         <Grid flex justifyContent="flex-start">
           <Image avatar />
           <Text>맛있어 보여요!!</Text>
