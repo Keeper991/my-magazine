@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Grid, Image, Text, Input, Button, Select } from "../elements";
 import Upload from "../shared/Upload";
-import Reject from "../components/Reject";
 import { actionCreators as postActions } from "../redux/modules/post";
 import { actionCreators as imageActions } from "../redux/modules/image";
+import { auth } from "../shared/firebase";
+import { history } from "../redux/configStore";
 
 const PostForm = (props) => {
   const dispatch = useDispatch();
@@ -19,21 +20,23 @@ const PostForm = (props) => {
   const id = props.match.params.id;
 
   useEffect(() => {
+    if (!isSignIn) {
+      history.replace("/reject");
+    }
+
     if (page === "/edit/:id") {
       const postIdx = postList.findIndex((post) => post.id === id);
       if (postIdx !== -1) {
         const post = postList[postIdx];
+        if (post.author.uid !== auth.currentUser.uid) {
+          history.replace("/reject");
+        }
         setContent(post.content);
         setLayout(post.layout);
-
         dispatch(imageActions.setPreview(post.imgUrl));
       }
     }
-  }, [page, postList, dispatch, id]);
-
-  if (!isSignIn) {
-    return <Reject />;
-  }
+  }, [isSignIn, page, postList, dispatch, id]);
 
   const handleClick = () => {
     const newPost = {

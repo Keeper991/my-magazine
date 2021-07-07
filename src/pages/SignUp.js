@@ -1,18 +1,42 @@
-import { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useState, useEffect, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Grid, Text, Button, Input } from "../elements";
 import { actionCreators as userActions } from "../redux/modules/user";
+import { history } from "../redux/configStore";
 
 const SignUp = () => {
   const dispatch = useDispatch();
+  const isSigning = useSelector((store) => store.user.isSigning);
+  const isSignIn = useSelector((store) => store.user.isSignIn);
   const [id, setId] = useState("");
   const [name, setName] = useState("");
   const [pw, setPw] = useState("");
   const [pwc, setPwc] = useState("");
+  const isAble = useRef(true);
+
+  useEffect(() => {
+    if (isSignIn) {
+      history.replace("/");
+    }
+  }, [isSignIn]);
+
+  useEffect(() => {
+    if (!id.includes("@")) {
+      isAble.current = false;
+    } else if (!id.split("@")[1].includes(".")) {
+      isAble.current = false;
+    } else {
+      isAble.current = true;
+    }
+  }, [id]);
 
   const handleClick = () => {
     if (pw !== pwc) {
       alert("비밀번호가 일치하지 않습니다.");
+      return;
+    }
+    if (!isAble) {
+      alert("이메일 형식에 맞지 않습니다.");
       return;
     }
     dispatch(userActions.signUpFB({ id, pw, name }));
@@ -52,9 +76,15 @@ const SignUp = () => {
           onChange={(e) => setPwc(e.target.value)}
         />
       </Grid>
-      <Button full margin="1em 0" onClick={handleClick}>
-        회원가입 하기
-      </Button>
+      {isSigning || !id || !name || !pw || !pwc ? (
+        <Button full margin="1em 0" onClick={handleClick} disabled>
+          회원가입 하기
+        </Button>
+      ) : (
+        <Button full margin="1em 0" onClick={handleClick}>
+          회원가입 하기
+        </Button>
+      )}
     </Grid>
   );
 };

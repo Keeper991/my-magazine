@@ -38,7 +38,7 @@ const signInFB =
         history.replace("/");
       })
       .catch((e) => {
-        dispatch(setSigning(true));
+        dispatch(setSigning(false));
         alert("로그인에 실패했습니다.");
       });
   };
@@ -141,7 +141,7 @@ const reducer = handleActions(
       }),
     [SIGNOUT]: (state, action) =>
       produce(state, (draft) => {
-        draft.user = initialState;
+        draft.user = initialState.user;
         draft.isSignIn = false;
       }),
     [SIGNING]: (state, action) =>

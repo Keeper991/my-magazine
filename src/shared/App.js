@@ -12,6 +12,7 @@ import "./App.css";
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { actionCreators as userActions } from "../redux/modules/user";
+import Reject from "../components/Reject";
 
 function App() {
   const dispatch = useDispatch();
@@ -26,8 +27,10 @@ function App() {
         <Route path="/create" component={PostForm} />
         <Route path="/notice" component={NoticeList} />
         <Route path="/detail/:id" component={Detail} />
+        <Route path="/edit/:id" component={PostForm} />
         <Route path="/signin" component={SignIn} />
         <Route path="/signup" component={SignUp} />
+        <Route path="/reject" component={Reject} />
       </ConnectedRouter>
     </div>
   );
