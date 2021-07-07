@@ -1,6 +1,5 @@
-import { Grid, Button, Text, Image } from "../elements";
-import { FavoriteBorder } from "@material-ui/icons";
-import { history } from "../redux/configStore";
+import { Grid, Text, Image } from "../elements";
+import Like from "./Like";
 
 const Post = (props) => {
   const {
@@ -12,14 +11,10 @@ const Post = (props) => {
     likeCnt,
     commentCnt,
     createdAt,
+    onClick,
   } = props;
   return (
-    <Grid
-      onClick={() => {
-        history.push(`/detail/${id}`);
-        window.scrollTo(0, 0);
-      }}
-    >
+    <Grid>
       <Grid flex>
         <Grid flex term>
           <Image avatar url={author.imgUrl} />
@@ -30,31 +25,29 @@ const Post = (props) => {
         </Grid>
       </Grid>
       {layout === "Bottom" ? (
-        <Grid>
+        <Grid onClick={onClick}>
           <Text>{content}</Text>
           <Image url={imgUrl} />
         </Grid>
       ) : layout === "Right" ? (
-        <Grid flex>
+        <Grid flex onClick={onClick}>
           <Text half>{content}</Text>
           <Image half url={imgUrl} />
         </Grid>
       ) : (
-        <Grid flex flexDirection="row-reverse">
+        <Grid flex flexDirection="row-reverse" onClick={onClick}>
           <Text half>{content}</Text>
           <Image half url={imgUrl} />
         </Grid>
       )}
-
-      <Grid flex>
-        <Text>좋아요 {likeCnt}개</Text>
-        <Button bgColor="transparent">
-          <FavoriteBorder />
-        </Button>
-      </Grid>
+      <Like id={id} likeCnt={likeCnt} />
       <Text margin="0 0">댓글 {commentCnt}개</Text>
     </Grid>
   );
+};
+
+Post.defaultProps = {
+  onClick: () => {},
 };
 
 export default Post;

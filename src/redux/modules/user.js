@@ -1,33 +1,45 @@
 import { createAction, handleActions } from "redux-actions";
 import { produce } from "immer";
-import firebase, { auth } from "../../shared/firebase";
+import firebase, { auth, firestore } from "../../shared/firebase";
 
 const LOAD = "user/LOAD";
 const SET = "user/SET";
 const SIGNOUT = "user/SIGNOUT";
+const SIGNING = "user/SIGNING";
+const LIKE = "user/LIKE";
 
 const loadUser = createAction(LOAD, (user) => ({ user }));
 const setUser = createAction(SET, (user) => ({ user }));
 const signOut = createAction(SIGNOUT, () => ({}));
+const setSigning = createAction(SIGNING, (isSigning) => ({ isSigning }));
+const setLikeList = createAction(LIKE, (postId, isLike) => ({
+  postId,
+  isLike,
+}));
+
+const userDB = firestore.collection("user");
 
 const signInFB =
   ({ id, pw }) =>
   (dispatch, getState, { history }) => {
+    dispatch(setSigning(true));
     auth
       .setPersistence(firebase.auth.Auth.Persistence.SESSION)
       .then(() => {
         return auth.signInWithEmailAndPassword(id, pw);
       })
       .then((user) => {
-        const {
-          id,
-          displayName: name,
-          user: { uid },
-          photoURL: profile,
-        } = user;
-        dispatch(setUser({ id, name, profile, uid }));
+        return userDB.doc(user.user.uid).get();
+      })
+      .then((doc) => {
+        dispatch(setUser({ ...doc.data(), uid: doc.id }));
+        dispatch(setSigning(false));
         alert("로그인 되었습니다.");
         history.replace("/");
+      })
+      .catch((e) => {
+        dispatch(setSigning(true));
+        alert("로그인에 실패했습니다.");
       });
   };
 
@@ -36,6 +48,7 @@ const signOutFB =
   (dispatch, getState, { history }) => {
     auth.signOut().then(() => {
       dispatch(signOut());
+      alert("로그아웃 되었습니다.");
       history.push("/");
     });
   };
@@ -43,16 +56,29 @@ const signOutFB =
 const signUpFB =
   ({ id, pw, name }) =>
   (dispatch, getState, { history }) => {
+    dispatch(setSigning(true));
     auth
-      .createUserWithEmailAndPassword(id, pw)
-      .then(() => {
-        return auth.currentUser.updateProfile({
+      .setPersistence(firebase.auth.Auth.Persistence.SESSION)
+      .then(() => auth.createUserWithEmailAndPassword(id, pw))
+      .then(() =>
+        auth.currentUser.updateProfile({
           displayName: name,
-        });
+        })
+      )
+      .then(() => {
+        const userData = {
+          id,
+          name,
+          profile: "",
+          likeList: [],
+          commentList: [],
+        };
+        return userDB.doc(auth.currentUser.uid).set(userData);
       })
       .then(() => {
-        alert("회원가입이 완료되었습니다.");
         dispatch(setUser({ id, name, profile: "", uid: auth.currentUser.uid }));
+        alert("회원가입이 완료되었습니다.");
+        dispatch(setSigning(true));
         history.push("/");
       })
       .catch((e) => {
@@ -65,18 +91,32 @@ const signInCheckFB =
   (dispatch, geState, { history }) => {
     auth.onAuthStateChanged((user) => {
       if (user) {
-        const signInUser = {
-          id: user.email,
-          name: user.displayName,
-          profile: user.photoURL,
-          uid: user.uid,
-        };
-        dispatch(setUser(signInUser));
+        userDB
+          .doc(user.uid)
+          .get()
+          .then((userData) => {
+            dispatch(setUser({ ...userData.data() }));
+          });
       } else {
         dispatch(signOut());
       }
     });
   };
+
+const setLikeListFB = (postId, isLike) => (dispatch, getState) => {
+  const likeList = getState().user.user.likeList;
+  const newList = [...likeList];
+  isLike ? newList.push(postId) : newList.splice(newList.indexOf(postId), 1);
+
+  userDB
+    .doc(auth.currentUser.uid)
+    .update({
+      likeList: newList,
+    })
+    .then(() => {
+      dispatch(setLikeList(postId, isLike));
+    });
+};
 
 const initialState = {
   user: {
@@ -84,8 +124,11 @@ const initialState = {
     name: "",
     profile: "",
     uid: "",
+    likeList: [],
+    commentList: [],
   },
   isSignIn: false,
+  isSigning: false,
 };
 
 const reducer = handleActions(
@@ -98,8 +141,23 @@ const reducer = handleActions(
       }),
     [SIGNOUT]: (state, action) =>
       produce(state, (draft) => {
-        draft.user = null;
+        draft.user = initialState;
         draft.isSignIn = false;
+      }),
+    [SIGNING]: (state, action) =>
+      produce(state, (draft) => {
+        draft.isSigning = action.payload.isSigning;
+      }),
+    [LIKE]: (state, action) =>
+      produce(state, (draft) => {
+        if (action.payload.isLike) {
+          draft.user.likeList.push(action.payload.postId);
+        } else {
+          draft.user.likeList.splice(
+            draft.user.likeList.indexOf(action.payload.postId),
+            1
+          );
+        }
       }),
   },
   initialState
@@ -113,5 +171,6 @@ export const actionCreators = {
   signInFB,
   signOutFB,
   signInCheckFB,
+  setLikeListFB,
 };
 export default reducer;

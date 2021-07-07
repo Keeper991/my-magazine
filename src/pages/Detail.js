@@ -1,29 +1,28 @@
 import { Grid, Image, Text, Button, Input } from "../elements";
-import { FavoriteBorder, Create } from "@material-ui/icons";
+import { Create } from "@material-ui/icons";
 import Permit from "../shared/Permit";
+import Post from "../components/Post";
+import { useDispatch, useSelector } from "react-redux";
+import { useEffect } from "react";
+import { actionCreators as postActions } from "../redux/modules/post";
 
-const Detail = () => {
+const Detail = (props) => {
+  const dispatch = useDispatch();
+
+  const id = props.match.params.id;
+  const postList = useSelector((store) => store.post.list);
+  const post = postList.find((p) => p.id === id);
+
+  useEffect(() => {
+    if (!post) {
+      dispatch(postActions.loadOnePostFB(id));
+    }
+  }, [dispatch, post, id]);
+
   return (
     <>
       <Grid>
-        <Grid flex>
-          <Grid flex term>
-            <Image avatar />
-            <Text>breadman</Text>
-          </Grid>
-          <Grid flex term>
-            <Text>17시간 전</Text>
-          </Grid>
-        </Grid>
-        <Text>빵이다!!</Text>
-        <Image url="https://i.imgur.com/vlFwCsZ.jpg" />
-        <Grid flex>
-          <Text>좋아요 0개</Text>
-          <Button bgColor="transparent">
-            <FavoriteBorder />
-          </Button>
-        </Grid>
-        <Text margin="0 0">댓글 0개</Text>
+        {post && <Post {...post} id={id} />}
         <Permit>
           <Grid flex term>
             <Image avatar />

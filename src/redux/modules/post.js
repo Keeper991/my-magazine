@@ -2,17 +2,20 @@ import { createAction, handleActions } from "redux-actions";
 import { produce } from "immer";
 import { firestore, storage } from "../../shared/firebase";
 import { actionCreators as imageActions } from "./image";
+import { actionCreators as userActions } from "./user";
 import moment from "moment";
 
 const LOAD = "post/LOAD";
 const ADD = "post/ADD";
 const EDIT = "post/EDIT";
 const REMOVE = "post/REMOVE";
+const LIKE = "post/LIKE";
 
 const loadPost = createAction(LOAD, (list) => ({ list }));
 const addPost = createAction(ADD, (post) => ({ post }));
 const editPost = createAction(EDIT, (post) => ({ post }));
 const removePost = createAction(REMOVE, (id) => ({ id }));
+const likePost = createAction(LIKE, (id, isLike) => ({ id, isLike }));
 
 const postDB = firestore.collection("post");
 
@@ -22,7 +25,7 @@ const loadPostFB =
     postDB.get().then((docs) => {
       const postList = [];
       docs.forEach((doc) => {
-        postList.push(doc.data());
+        postList.push({ ...doc.data(), id: doc.id });
       });
       dispatch(loadPost(postList));
     });
@@ -42,7 +45,12 @@ const addPostFB =
       .then((snapshot) => snapshot.ref.getDownloadURL())
       .then((url) => {
         const postData = {
-          author: user,
+          author: {
+            id: user.id,
+            name: user.name,
+            profile: user.profile,
+            uid: user.uid,
+          },
           imgUrl: url,
           content,
           layout,
@@ -67,24 +75,50 @@ const addPostFB =
       });
   };
 
+const likePostFB = (id, isLike) => (dispatch, getState) => {
+  const postList = getState().post.list;
+  let likeCnt = postList[postList.findIndex((post) => post.id === id)].likeCnt;
+  isLike ? (likeCnt += 1) : (likeCnt -= 1);
+  postDB
+    .doc(id)
+    .update({
+      likeCnt,
+    })
+    .then(() => {
+      dispatch(likePost(id, isLike));
+      dispatch(userActions.setLikeListFB(id, isLike));
+    });
+};
+
+const loadOnePostFB = (id) => (dispatch, getState) => {
+  postDB
+    .doc(id)
+    .get()
+    .then((doc) => {
+      const post = [{ ...doc.data(), id: doc.id }];
+      dispatch(loadPost(post));
+    });
+};
+
 const initialState = {
   list: [
     {
-      id: "blahblahblah",
+      id: "",
       author: {
-        id: "breadman@breadman.shop",
-        name: "breadman",
-        profile: "https://i.imgur.com/vlFwCsZ.jpg",
-        uid: "O1BotlI5dVOQgssC626tcUYnYV62",
+        id: "",
+        name: "",
+        profile: "",
+        uid: "",
       },
-      imgUrl: "https://i.imgur.com/vlFwCsZ.jpg",
-      content: "빵이 너무 귀여워요~",
-      layout: "bottom",
+      imgUrl: "",
+      content: "",
+      layout: "",
       likeCnt: 0,
       commentCnt: 0,
-      createdAt: "2021-07-05 18:33:32",
+      createdAt: "",
     },
   ],
+  isUploading: false,
 };
 
 const reducer = handleActions(
@@ -110,6 +144,14 @@ const reducer = handleActions(
           1
         );
       }),
+    [LIKE]: (state, action) =>
+      produce(state, (draft) => {
+        const idx = draft.list.findIndex(
+          (post) => post.id === action.payload.id
+        );
+        if (action.payload.isLike) draft.list[idx].likeCnt += 1;
+        else draft.list[idx].likeCnt -= 1;
+      }),
   },
   initialState
 );
@@ -117,5 +159,7 @@ const reducer = handleActions(
 export const actionCreators = {
   loadPostFB,
   addPostFB,
+  likePostFB,
+  loadOnePostFB,
 };
 export default reducer;
