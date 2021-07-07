@@ -8,7 +8,9 @@ const Select = (props) => {
         {label}
         <ElSelect value={value} onChange={onChange}>
           {options.map((opt) => (
-            <ElOption value={opt}>{opt}</ElOption>
+            <ElOption key={opt} value={opt}>
+              {opt}
+            </ElOption>
           ))}
         </ElSelect>
       </ElLabel>

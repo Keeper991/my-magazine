@@ -1,6 +1,6 @@
 import { createAction, handleActions } from "redux-actions";
 import { produce } from "immer";
-import { firestore, storage } from "../../shared/firebase";
+import firebase, { auth, firestore, storage } from "../../shared/firebase";
 import { actionCreators as imageActions } from "./image";
 import { actionCreators as userActions } from "./user";
 import moment from "moment";
@@ -10,31 +10,42 @@ const ADD = "post/ADD";
 const EDIT = "post/EDIT";
 const REMOVE = "post/REMOVE";
 const LIKE = "post/LIKE";
+const UPLOADING = "post/UPLOADING";
 
 const loadPost = createAction(LOAD, (list) => ({ list }));
 const addPost = createAction(ADD, (post) => ({ post }));
 const editPost = createAction(EDIT, (post) => ({ post }));
 const removePost = createAction(REMOVE, (id) => ({ id }));
-const likePost = createAction(LIKE, (id, isLike) => ({ id, isLike }));
+const likePost = createAction(LIKE, (postId, userId, isLike) => ({
+  postId,
+  userId,
+  isLike,
+}));
+const setUploading = createAction(UPLOADING, (isUploading) => ({
+  isUploading,
+}));
 
 const postDB = firestore.collection("post");
 
 const loadPostFB =
   () =>
   (dispatch, getState, { history }) => {
-    postDB.get().then((docs) => {
-      const postList = [];
-      docs.forEach((doc) => {
-        postList.push({ ...doc.data(), id: doc.id });
+    postDB
+      .orderBy("createdAt", "desc")
+      .get()
+      .then((docs) => {
+        const postList = [];
+        docs.forEach((doc) => {
+          postList.push({ ...doc.data(), id: doc.id });
+        });
+        dispatch(loadPost(postList));
       });
-      dispatch(loadPost(postList));
-    });
   };
 
 const addPostFB =
   (post) =>
   (dispatch, getState, { history }) => {
-    dispatch(imageActions.setUploading(true));
+    dispatch(setUploading(true));
     const user = getState().user.user;
     const image = getState().image.preview;
     const { content, layout } = post;
@@ -49,7 +60,7 @@ const addPostFB =
             id: user.id,
             name: user.name,
             profile: user.profile,
-            uid: user.uid,
+            uid: auth.currentUser.uid,
           },
           imgUrl: url,
           content,
@@ -67,38 +78,113 @@ const addPostFB =
             id: doc.id,
           };
           dispatch(addPost(newPost));
-          dispatch(imageActions.setUploading(false));
-          dispatch(imageActions.setPreview(null));
+          dispatch(setUploading(false));
           alert("작성되었습니다.");
-          history.push(`/detail/${doc.id}`);
+          history.push(`/`);
         });
       });
   };
 
-const likePostFB = (id, isLike) => (dispatch, getState) => {
-  const postList = getState().post.list;
-  let likeCnt = postList[postList.findIndex((post) => post.id === id)].likeCnt;
-  isLike ? (likeCnt += 1) : (likeCnt -= 1);
-  postDB
-    .doc(id)
-    .update({
-      likeCnt,
-    })
-    .then(() => {
-      dispatch(likePost(id, isLike));
-      dispatch(userActions.setLikeListFB(id, isLike));
-    });
-};
+const editPostFB =
+  (postId, post) =>
+  (dispatch, getState, { history }) => {
+    dispatch(setUploading(true));
+    const uid = getState().user.user.uid;
+    const { content, layout } = post;
+    const time = new Date().getTime();
+    if (getState().image.isChanged) {
+      const image = getState().image.preview;
+      storage
+        .ref(`images/${uid}_${time}`)
+        .putString(image, "data_url")
+        .then((snapshot) => snapshot.ref.getDownloadURL())
+        .then((url) => {
+          dispatch(imageActions.setPreview(url));
+          return postDB.doc(postId).update({
+            imgUrl: url,
+            content,
+            layout,
+          });
+        })
+        .then(() => {
+          const curPost = getState().post.list.find(
+            (post) => post.id === postId
+          );
+          const newPost = {
+            ...curPost,
+            imgUrl: getState().image.preview,
+            content,
+            layout,
+          };
+          dispatch(editPost(newPost));
+          dispatch(setUploading(false));
+          alert("작성되었습니다.");
+          history.push(`/`);
+        });
+    } else {
+      postDB
+        .doc(postId)
+        .update({
+          content,
+          layout,
+        })
+        .then(() => {
+          const curPost = getState().post.list.find(
+            (post) => post.id === postId
+          );
+          const newPost = { ...curPost, content, layout };
+          dispatch(editPost(newPost));
+          dispatch(setUploading(false));
+          alert("작성되었습니다.");
+          history.push(`/`);
+        });
+    }
+  };
 
-const loadOnePostFB = (id) => (dispatch, getState) => {
-  postDB
-    .doc(id)
-    .get()
-    .then((doc) => {
-      const post = [{ ...doc.data(), id: doc.id }];
-      dispatch(loadPost(post));
-    });
-};
+const likePostFB =
+  (postId, userId, prevLikeList, isLike) => (dispatch, getState) => {
+    const likeList = [...prevLikeList];
+    isLike
+      ? likeList.push(userId)
+      : likeList.splice(likeList.indexOf(userId), 1);
+    postDB
+      .doc(postId)
+      .update({
+        likeList,
+      })
+      .then(() => {
+        dispatch(likePost(postId, userId, isLike));
+        dispatch(userActions.setLikeListFB(postId, isLike));
+      });
+  };
+
+const loadOnePostFB =
+  (id) =>
+  (dispatch, getState, { history }) => {
+    postDB
+      .doc(id)
+      .get()
+      .then((doc) => {
+        console.log(doc.data());
+        if (doc.data()) {
+          const post = [{ ...doc.data(), id: doc.id }];
+          dispatch(loadPost(post));
+        }
+      });
+  };
+
+const removePostFB =
+  (id) =>
+  (dispatch, getState, { history }) => {
+    postDB
+      .doc(id)
+      .delete()
+      .then(() => {
+        alert("삭제되었습니다.");
+        dispatch(removePost(id));
+        history.replace("/");
+      });
+  };
 
 const initialState = {
   list: [
@@ -113,7 +199,7 @@ const initialState = {
       imgUrl: "",
       content: "",
       layout: "",
-      likeCnt: 0,
+      likeList: [],
       commentCnt: 0,
       createdAt: "",
     },
@@ -133,24 +219,34 @@ const reducer = handleActions(
       }),
     [EDIT]: (state, action) =>
       produce(state, (draft) => {
-        draft.list[
-          draft.list.findIndex((post) => post.id === action.payload.post.id)
-        ] = action.post;
+        const idx = draft.list.findIndex(
+          (post) => post.id === action.payload.post.id
+        );
+        draft.list[idx] = action.payload.post;
       }),
     [REMOVE]: (state, action) =>
-      produce(state, (draft) => {
-        draft.list.splice(
-          draft.list.findIndex((post) => post.id === action.payload.id),
-          1
-        );
-      }),
-    [LIKE]: (state, action) =>
       produce(state, (draft) => {
         const idx = draft.list.findIndex(
           (post) => post.id === action.payload.id
         );
-        if (action.payload.isLike) draft.list[idx].likeCnt += 1;
-        else draft.list[idx].likeCnt -= 1;
+        draft.list.splice(idx, 1);
+      }),
+    [LIKE]: (state, action) =>
+      produce(state, (draft) => {
+        const idx = draft.list.findIndex(
+          (post) => post.id === action.payload.postId
+        );
+        if (action.payload.isLike)
+          draft.list[idx].likeList.push(action.payload.userId);
+        else
+          draft.list[idx].likeList.splice(
+            draft.list[idx].likeList.indexOf(action.payload.userId),
+            1
+          );
+      }),
+    [UPLOADING]: (state, action) =>
+      produce(state, (draft) => {
+        draft.isUploading = action.payload.isUploading;
       }),
   },
   initialState
@@ -161,5 +257,7 @@ export const actionCreators = {
   addPostFB,
   likePostFB,
   loadOnePostFB,
+  editPostFB,
+  removePostFB,
 };
 export default reducer;

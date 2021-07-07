@@ -11,14 +11,19 @@ const PostList = () => {
   const postList = useSelector((store) => store.post.list);
   const dispatch = useDispatch();
   useEffect(() => {
-    if (postList.length < 2) {
-      dispatch(postActions.loadPostFB());
-    }
-  }, [dispatch, postList.length]);
+    dispatch(postActions.loadPostFB());
+  }, [dispatch]);
   return (
     <Grid>
       {postList.map((post) => (
-        <Post key={post.id} {...post} />
+        <Post
+          key={post.id}
+          {...post}
+          onClick={() => {
+            history.push(`/detail/${post.id}`);
+            window.scrollTo(0, 0);
+          }}
+        />
       ))}
       <Permit>
         <Button

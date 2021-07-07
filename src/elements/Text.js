@@ -1,8 +1,8 @@
 import styled from "styled-components";
 
 const Text = (props) => {
-  const { header, children, bold, margin, half } = props;
-  const styles = { bold, margin, half };
+  const { header, children, bold, margin, half, center } = props;
+  const styles = { bold, margin, half, center };
   return (
     <>
       {header ? (
@@ -19,6 +19,7 @@ Text.defaultProps = {
   header: false,
   bold: false,
   half: false,
+  center: false,
   margin: "1em 0",
 };
 
@@ -27,6 +28,7 @@ const ElText = styled.p`
   margin: ${({ margin }) => margin};
   word-break: break-all;
   ${({ half }) => (half ? `width: 50%;` : "")}
+  text-align: ${({ center }) => (center ? "center" : "left")};
 `;
 
 const ElHeader = styled.h1``;

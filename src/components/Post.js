@@ -1,5 +1,8 @@
-import { Grid, Text, Image } from "../elements";
+import { useDispatch } from "react-redux";
+import { Grid, Text, Image, Button } from "../elements";
+import { history } from "../redux/configStore";
 import Like from "./Like";
+import { actionCreators as postActions } from "../redux/modules/post";
 
 const Post = (props) => {
   const {
@@ -8,11 +11,14 @@ const Post = (props) => {
     imgUrl,
     content,
     layout,
-    likeCnt,
+    likeList,
     commentCnt,
     createdAt,
     onClick,
+    edit,
+    remove,
   } = props;
+  const dispatch = useDispatch();
   return (
     <Grid>
       <Grid flex>
@@ -22,6 +28,21 @@ const Post = (props) => {
         </Grid>
         <Grid flex term>
           <Text>{createdAt}</Text>
+          {edit && (
+            <Button onClick={() => history.push(`/edit/${id}`)}>수정</Button>
+          )}
+          {remove && (
+            <Button
+              onClick={() => {
+                const isRemove = window.confirm("삭제하시겠습니까?");
+                if (isRemove) {
+                  dispatch(postActions.removePostFB(id));
+                }
+              }}
+            >
+              삭제
+            </Button>
+          )}
         </Grid>
       </Grid>
       {layout === "Bottom" ? (
@@ -31,22 +52,28 @@ const Post = (props) => {
         </Grid>
       ) : layout === "Right" ? (
         <Grid flex onClick={onClick}>
-          <Text half>{content}</Text>
+          <Text center half>
+            {content}
+          </Text>
           <Image half url={imgUrl} />
         </Grid>
       ) : (
         <Grid flex flexDirection="row-reverse" onClick={onClick}>
-          <Text half>{content}</Text>
+          <Text center half>
+            {content}
+          </Text>
           <Image half url={imgUrl} />
         </Grid>
       )}
-      <Like id={id} likeCnt={likeCnt} />
-      <Text margin="0 0">댓글 {commentCnt}개</Text>
+      <Like id={id} likeList={likeList} />
+      {/* <Text margin="0 0">댓글 {commentCnt}개</Text> */}
     </Grid>
   );
 };
 
 Post.defaultProps = {
+  edit: false,
+  remove: false,
   onClick: () => {},
 };
 

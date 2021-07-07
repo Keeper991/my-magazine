@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch } from "react-redux";
 import styled from "styled-components";
 import { Grid } from "../elements";
@@ -8,11 +8,18 @@ import { actionCreators as imageActions } from "../redux/modules/image";
 const Upload = () => {
   const [fileName, setFileName] = useState("선택된 이미지 없음");
   const dispatch = useDispatch();
+  useEffect(() => {
+    return () => {
+      dispatch(imageActions.setPreview(null));
+      dispatch(imageActions.setChanged(false));
+    };
+  }, [dispatch]);
   const handleChange = (e) => {
     const reader = new FileReader();
     reader.readAsDataURL(e.target.files[0]);
     reader.onloadend = () => {
       dispatch(imageActions.setPreview(reader.result));
+      dispatch(imageActions.setChanged(true));
       setFileName(e.target.files[0].name);
     };
   };
