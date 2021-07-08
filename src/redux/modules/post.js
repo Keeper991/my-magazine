@@ -1,6 +1,6 @@
 import { createAction, handleActions } from "redux-actions";
 import { produce } from "immer";
-import firebase, { auth, firestore, storage } from "../../shared/firebase";
+import { auth, firestore, storage } from "../../shared/firebase";
 import { actionCreators as imageActions } from "./image";
 import { actionCreators as userActions } from "./user";
 import moment from "moment";
@@ -11,8 +11,9 @@ const EDIT = "post/EDIT";
 const REMOVE = "post/REMOVE";
 const LIKE = "post/LIKE";
 const UPLOADING = "post/UPLOADING";
+const LOADING = "post/LOADING";
 
-const loadPost = createAction(LOAD, (list) => ({ list }));
+const loadPost = createAction(LOAD, (list, paging) => ({ list, paging }));
 const addPost = createAction(ADD, (post) => ({ post }));
 const editPost = createAction(EDIT, (post) => ({ post }));
 const removePost = createAction(REMOVE, (id) => ({ id }));
@@ -24,21 +25,70 @@ const likePost = createAction(LIKE, (postId, userId, isLike) => ({
 const setUploading = createAction(UPLOADING, (isUploading) => ({
   isUploading,
 }));
+const setLoading = createAction(LOADING, (isLoading) => ({ isLoading }));
+
+const initialState = {
+  list: [
+    {
+      id: "",
+      author: {
+        id: "",
+        name: "",
+        profile: "",
+        uid: "",
+      },
+      imgUrl: "",
+      content: "",
+      layout: "",
+      likeList: [],
+      commentList: [],
+      createdAt: "",
+    },
+  ],
+  isUploading: false,
+  paging: {
+    start: null,
+    end: null,
+    size: 3,
+  },
+  isLoading: false,
+};
 
 const postDB = firestore.collection("post");
 
 const loadPostFB =
-  () =>
+  (start) =>
   (dispatch, getState, { history }) => {
-    postDB
-      .orderBy("createdAt", "desc")
+    const { paging } = getState().post;
+
+    if (paging.start && !paging.end) {
+      return;
+    }
+    dispatch(setLoading(true));
+
+    let query = postDB.orderBy("createdAt", "desc");
+    if (start) {
+      query = query.startAt(start);
+    }
+    query
+      .limit(paging.size + 1)
       .get()
       .then((docs) => {
+        let nextPaging = {
+          start: docs.docs[0],
+          end:
+            docs.docs.length === paging.size + 1
+              ? docs.docs[paging.size]
+              : null,
+          size: paging.size,
+        };
+
         const postList = [];
         docs.forEach((doc) => {
           postList.push({ ...doc.data(), id: doc.id });
         });
-        dispatch(loadPost(postList));
+        if (docs.docs.length === paging.size + 1) postList.pop();
+        dispatch(loadPost(postList, nextPaging));
       });
   };
 
@@ -65,8 +115,8 @@ const addPostFB =
           imgUrl: url,
           content,
           layout,
-          likeCnt: 0,
-          commentCnt: 0,
+          likeList: [],
+          commentList: [],
           createdAt: moment(time).format("YYYY-MM-DD hh:mm:ss"),
         };
         return postDB.add(postData);
@@ -165,10 +215,9 @@ const loadOnePostFB =
       .doc(id)
       .get()
       .then((doc) => {
-        console.log(doc.data());
         if (doc.data()) {
           const post = [{ ...doc.data(), id: doc.id }];
-          dispatch(loadPost(post));
+          dispatch(loadPost(post, initialState.paging));
         }
       });
   };
@@ -186,32 +235,14 @@ const removePostFB =
       });
   };
 
-const initialState = {
-  list: [
-    {
-      id: "",
-      author: {
-        id: "",
-        name: "",
-        profile: "",
-        uid: "",
-      },
-      imgUrl: "",
-      content: "",
-      layout: "",
-      likeList: [],
-      commentCnt: 0,
-      createdAt: "",
-    },
-  ],
-  isUploading: false,
-};
-
 const reducer = handleActions(
   {
     [LOAD]: (state, action) =>
       produce(state, (draft) => {
-        draft.list = action.payload.list;
+        if (draft.list.length < 2) draft.list = action.payload.list;
+        else draft.list.push(...action.payload.list);
+        draft.paging = action.payload.paging;
+        draft.isLoading = false;
       }),
     [ADD]: (state, action) =>
       produce(state, (draft) => {
@@ -247,6 +278,10 @@ const reducer = handleActions(
     [UPLOADING]: (state, action) =>
       produce(state, (draft) => {
         draft.isUploading = action.payload.isUploading;
+      }),
+    [LOADING]: (state, action) =>
+      produce(state, (draft) => {
+        draft.isLoading = action.payload.isLoading;
       }),
   },
   initialState

@@ -12,7 +12,8 @@ const SignUp = () => {
   const [name, setName] = useState("");
   const [pw, setPw] = useState("");
   const [pwc, setPwc] = useState("");
-  const isAble = useRef(true);
+  // const isAble = useRef(true);
+  const [isAble, setIsAble] = useState(false);
 
   useEffect(() => {
     if (isSignIn) {
@@ -21,13 +22,7 @@ const SignUp = () => {
   }, [isSignIn]);
 
   useEffect(() => {
-    if (!id.includes("@")) {
-      isAble.current = false;
-    } else if (!id.split("@")[1].includes(".")) {
-      isAble.current = false;
-    } else {
-      isAble.current = true;
-    }
+    setIsAble(/.+@.+\.[A-Za-z]+$/.test(id));
   }, [id]);
 
   const handleClick = () => {
@@ -76,7 +71,7 @@ const SignUp = () => {
           onChange={(e) => setPwc(e.target.value)}
         />
       </Grid>
-      {isSigning || !id || !name || !pw || !pwc ? (
+      {isSigning || !id || !name || !pw || !pwc || !isAble ? (
         <Button full margin="1em 0" onClick={handleClick} disabled>
           회원가입 하기
         </Button>
