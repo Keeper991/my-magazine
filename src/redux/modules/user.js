@@ -78,11 +78,12 @@ const signUpFB =
       .then(() => {
         dispatch(setUser({ id, name, profile: "", uid: auth.currentUser.uid }));
         alert("회원가입이 완료되었습니다.");
-        dispatch(setSigning(true));
+        dispatch(setSigning(false));
         history.push("/");
       })
       .catch((e) => {
         alert(e.code, e.message);
+        dispatch(setSigning(false));
       });
   };
 

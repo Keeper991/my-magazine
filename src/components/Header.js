@@ -12,28 +12,25 @@ const Header = () => {
     dispatch(userActions.signOutFB());
   };
 
-  if (isSignIn) {
-    return (
-      <Grid flex>
-        <Image avatar />
-        <Grid flex term>
-          <Button>내정보</Button>
-          <Button onClick={() => history.push("/notice")}>알림</Button>
-          <Button onClick={handleSignOut}>로그아웃</Button>
-        </Grid>
+  return (
+    <Grid flex>
+      <Image avatar onClick={() => history.push("/")} />
+      <Grid flex term>
+        {isSignIn ? (
+          <>
+            <Button>내정보</Button>
+            <Button onClick={() => history.push("/notice")}>알림</Button>
+            <Button onClick={handleSignOut}>로그아웃</Button>
+          </>
+        ) : (
+          <>
+            <Button onClick={() => history.push("/signin")}>로그인</Button>
+            <Button onClick={() => history.push("/signup")}>회원가입</Button>
+          </>
+        )}
       </Grid>
-    );
-  } else {
-    return (
-      <Grid flex>
-        <Image avatar />
-        <Grid flex term>
-          <Button onClick={() => history.push("/signin")}>로그인</Button>
-          <Button onClick={() => history.push("/signup")}>회원가입</Button>
-        </Grid>
-      </Grid>
-    );
-  }
+    </Grid>
+  );
 };
 
 export default Header;

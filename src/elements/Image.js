@@ -1,12 +1,12 @@
 import styled from "styled-components";
 
 const Image = (props) => {
-  const { avatar, url, half } = props;
+  const { avatar, url, half, onClick } = props;
 
   return (
     <>
       {avatar ? (
-        <Avatar url={url} />
+        <Avatar url={url} onClick={onClick} />
       ) : (
         <AspectOutter half={half}>
           <AspectInner url={url} />
@@ -20,6 +20,7 @@ Image.defaultProps = {
   avatar: false,
   half: false,
   url: "",
+  onClick: () => {},
 };
 
 const AspectOutter = styled.div`
