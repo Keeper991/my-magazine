@@ -10,7 +10,15 @@ const InfinityScroll = (props) => {
     const scrollTop =
       (document.documentElement && document.documentElement.scrollTop) ||
       document.body.scrollTop;
-
+    // console.log(
+    //   e.target.documentElement.scrollHeight,
+    //   e.target.documentElement.scrollTop,
+    //   e.target.documentElement.clientHeight,
+    //   "/",
+    //   scrollHeight,
+    //   scrollTop,
+    //   innerHeight
+    // );
     if (scrollHeight - scrollTop - innerHeight < 200) {
       if (isLoading) {
         return;
